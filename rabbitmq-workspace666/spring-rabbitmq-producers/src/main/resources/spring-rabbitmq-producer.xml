@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation=
+               "http://www.springframework.org/schema/context
+          http://www.springframework.org/schema/context/spring-context.xsd
+          http://www.springframework.org/schema/beans
+          http://www.springframework.org/schema/beans/spring-beans.xsd
+          http://www.springframework.org/schema/rabbit
+          http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
+
+
+<!--        context为一个名称空间，spring提供的-->
+    <context:property-placeholder location="classpath:rabbitmq.properties"/>
+
+
+    <!--声明连接工厂，spring封装的一个连接工厂-->
+    <rabbit:connection-factory id="connectionFactory"
+                               host="${rabbitmq.host}"
+                               port="${rabbitmq.port}"
+                               username="${rabbitmq.username}"
+                               password="${rabbitmq.password}"
+                               virtual-host="${rabbitmq.virtual-host}"/>
+
+    <!--创建一个管理器（org.springframework.amqp.rabbit.core.RabbitAdmin），用于管理交换，队列和绑定。
+    auto-startup 指定是否自动声明上下文中的队列,交换和绑定, 默认值为true。-->
+    <rabbit:admin connection-factory="connectionFactory"/>
+
+    <!--可以在xml采用如下方式声明交换机、队列、绑定管理 但是建议使用代码方式声明 方法更加灵活且可以采用链调用-->
+
+<!--    id：bean的名称
+        name:queue的名称
+        auto-declare：自动创建
+        auto-delete：自动删除。最后一个消费者和该队列断开连接后，会自动删除队列。
+        durable：知否持久化
+        exclusive：是否独占
+
+-->
+    <rabbit:queue id="spring_queue" name="spring_queue" auto-declare="true"/>
+
+    <rabbit:queue id="spring_fanout_queue_1" name="spring_fanout_queue_1" auto-declare="true"/>
+
+    <rabbit:queue id="spring_fanout_queue_2" name="spring_fanout_queue_2" auto-declare="true"/>
+
+
+<!--    交换机的属性：
+        direct类型的交换机，需要绑定队列 key：路由key queue
+        topic类型的交换机需要绑定一个pattern的表达式。
+-->
+    <rabbit:fanout-exchange id="spring_fanout_exchange" name="spring_fanout_exchange" auto-declare="true">
+        <rabbit:bindings>
+            <rabbit:binding queue="spring_fanout_queue_1"/>
+            <rabbit:binding queue="spring_fanout_queue_2"/>
+        </rabbit:bindings>
+    </rabbit:fanout-exchange>
+
+    <rabbit:queue id="spring_topic_queue_star" name="spring_topic_queue_star" auto-declare="true"/>
+    <rabbit:queue id="spring_topic_queue_well" name="spring_topic_queue_well" auto-declare="true"/>
+    <rabbit:queue id="spring_topic_queue_well2" name="spring_topic_queue_well2" auto-declare="true"/>
+
+    <rabbit:topic-exchange id="spring_topic_exchange" name="spring_topic_exchange" auto-declare="true">
+            <rabbit:bindings>
+                <rabbit:binding pattern="heima.*" queue="spring_topic_queue_star"/>
+                <rabbit:binding pattern="heima.#" queue="spring_topic_queue_well"/>
+                <rabbit:binding pattern="itcast.#" queue="spring_topic_queue_well2"/>
+            </rabbit:bindings>
+    </rabbit:topic-exchange>
+
+<!--    定义rabbitmqtemplate对象，相当于一个bean，通过这个可以注入到代码中，方便再代码中发送消息-->
+    <rabbit:template id="rabbitTemplate" connection-factory="connectionFactory"/>
+    
+
+</beans>

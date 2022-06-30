@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation=
+               "http://www.springframework.org/schema/context
+          http://www.springframework.org/schema/context/spring-context.xsd
+          http://www.springframework.org/schema/beans
+          http://www.springframework.org/schema/beans/spring-beans.xsd
+          http://www.springframework.org/schema/rabbit
+          http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
+
+    <context:property-placeholder location="classpath:rabbitmq.properties"/>
+
+    <!--声明连接工厂-->
+    <rabbit:connection-factory id="connectionFactory"
+                               host="${rabbitmq.host}"
+                               port="${rabbitmq.port}"
+                               username="${rabbitmq.username}"
+                               password="${rabbitmq.password}"
+                               virtual-host="${rabbitmq.virtual-host}"/>
+
+    <!--创建一个管理器（org.springframework.amqp.rabbit.core.RabbitAdmin），用于管理交换，队列和绑定。
+    auto-startup 指定是否自动声明上下文中的队列,交换和绑定, 默认值为true。-->
+    <rabbit:admin connection-factory="connectionFactory"/>
+
+    <!--可以在xml采用如下方式声明交换机、队列、绑定管理 但是建议使用代码方式声明 方法更加灵活且可以采用链调用-->
+    <rabbit:queue id="spring_queue" name="spring_queue" auto-declare="true"/>
+
+    <rabbit:queue id="spring_fanout_queue_1" name="spring_fanout_queue_1" auto-declare="true"/>
+
+    <rabbit:queue id="spring_fanout_queue_2" name="spring_fanout_queue_2" auto-declare="true"/>
+
+    <rabbit:fanout-exchange id="spring_fanout_exchange" name="spring_fanout_exchange" auto-declare="true">
+        <rabbit:bindings>
+            <rabbit:binding queue="spring_fanout_queue_1"/>
+            <rabbit:binding queue="spring_fanout_queue_2"/>
+        </rabbit:bindings>
+    </rabbit:fanout-exchange>
+
+    <rabbit:queue id="spring_topic_queue_star" name="spring_topic_queue_star" auto-declare="true"/>
+    <rabbit:queue id="spring_topic_queue_well" name="spring_topic_queue_well" auto-declare="true"/>
+    <rabbit:queue id="spring_topic_queue_well2" name="spring_topic_queue_well2" auto-declare="true"/>
+
+    <rabbit:topic-exchange id="spring_topic_exchange" name="spring_topic_exchange" auto-declare="true">
+            <rabbit:bindings>
+                <rabbit:binding pattern="heima.*" queue="spring_topic_queue_star"/>
+                <rabbit:binding pattern="heima.#" queue="spring_topic_queue_well"/>
+                <rabbit:binding pattern="itcast.#" queue="spring_topic_queue_well2"/>
+            </rabbit:bindings>
+    </rabbit:topic-exchange>
+
+    <rabbit:template id="rabbitTemplate" connection-factory="connectionFactory"/>
+    
+
+</beans>
